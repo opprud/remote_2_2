@@ -121,6 +121,9 @@ volatile uint8_t _lastRssi;
 
 bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 {
+
+	volatile int c=0;
+
 	_slaveSelectPin = slaveSelectPin;
 	_idleMode = RF22_XTON; // Default idle state is READY mode
 	_mode = RF22_MODE_IDLE; // We start up in idle mode
@@ -129,7 +132,9 @@ bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 	_txGood = 0;
 	_spiPortNum = spiPortNum;
 	// Wait for RF22 POR (up to 16msec)
-	delay(100);
+	//delay(100);
+	c = 300000;
+	while(c--);
 
 	// Initialise the slave select pin
 	//Done elsewhere
@@ -146,6 +151,8 @@ bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 
 	/* use port0_1 as input event, interrupt. */
 	/* channel 0, port0_1, fallin edge trigger, active low. */
+	/* enable IRQ*/
+	NVIC_EnableIRQ(EINT0_IRQn);
 	GPIOSetInterrupt(RFMIRQ_PORT, RFMIRQ_PIN, 0, 0, 0);
 	GPIOIntEnable( RFMIRQ_PORT, RFMIRQ_PIN);
 
@@ -208,16 +215,23 @@ bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 	setTxPower(RF22_TXPOW_8DBM);
 //    setTxPower(RF22_TXPOW_17DBM);
 
+	/* ack anything pending */
+//	GPIOIntClear(RFMIRQ_PORT, RFMIRQ_PIN);
+	/* enable IRQ*/
+//	NVIC_EnableIRQ(EINT0_IRQn);
+
 	return true;
 }
 
 // C++ level interrupt handler for this instance
 //void handleInterrupt()
 //{
-void PININT0_IRQHandler(void)
+//void PININT0_IRQHandler(void)
+void PIOINT0_IRQHandler(void)
 {
 	/* ACK INT */
-	GPIOIntClear(RFMIRQ_PORT, RFMIRQ_PIN);
+	//GPIOIntClear(RFMIRQ_PORT, RFMIRQ_PIN);
+
 
 	uint8_t _lastInterruptFlags[2];
 	// Read the interrupt flags which clears the interrupt
@@ -315,6 +329,9 @@ void PININT0_IRQHandler(void)
 		_lastRssi = spiRead(RF22_REG_26_RSSI);
 		clearRxBuf();
 	}
+
+	/* ack interrupt and rearm*/
+	GPIOIntClear(RFMIRQ_PORT, RFMIRQ_PIN);
 }
 
 // These are low level functions that call the interrupt handler for the correct
@@ -333,10 +350,13 @@ void PININT0_IRQHandler(void)
 
 void reset()
 {
+	volatile int c=0;
 	spiWrite(RF22_REG_07_OPERATING_MODE1, RF22_SWRES);
 	// Wait for it to settle
 	//_delayMs_ms(1); // SWReset time is nominally 100usec
-	delay(1);
+	//delay(1);
+	c=10000;
+	while(c--);
 }
 
 uint8_t spiRead(uint8_t reg) //------------------------------------------------------------

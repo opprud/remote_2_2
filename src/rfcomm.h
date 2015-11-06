@@ -38,7 +38,7 @@ typedef enum
 typedef struct
 {
 	unsigned char data[4];
-	unsigned char breadcrumbs[0];
+	unsigned char breadcrumbs[6];
 	unsigned char dest;
 	unsigned char source;
 	unsigned char retries;

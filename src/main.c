@@ -16,7 +16,7 @@
 /* timer thing */
 unsigned int MsCount;
 /*read MY_ID from HW jumpers*/
-unsigned char MY_ID = 0;
+unsigned char MY_ID = 1;
 
 /* tx & rx data package*/
 payload_t txData;
@@ -121,6 +121,7 @@ void WDTFeed(void)
 void sysInit(void)
 {
 
+	//__disable_irq();
 	/* update core clk */
 	SystemCoreClockUpdate();
 
@@ -173,6 +174,8 @@ void sysInit(void)
 	LPC_IOCON->PIO3_1 &= ~0x18;
 	LPC_IOCON->PIO3_1 |= 0x8;
 #endif
+
+	//__enable_irq();
 }
 
 /* Main Program */
@@ -237,9 +240,9 @@ int main(void)
 			{
 				/* compose data pkg */
 				txData.data[0] = triggerAction;
-				txData.data[1] = MY_ID;
+				txData.data[1] = triggerAction;//MY_ID;
 				txData.dest = DEST_ANY_ROUTER;
-				txData.source = MY_ID;
+				txData.source = triggerAction;//MY_ID;
 				txData.type = DATA_REMOTE;
 			}
 			/* nothing usefull, then don't send*/
@@ -263,7 +266,7 @@ int main(void)
 				else
 				{
 					len = sizeof(txData);
-					//send(&txData.data[0], len);
+					send(&txData.data[0], len);
 					waitPacketSent();
 					gotAck = waitForAck();
 				}
