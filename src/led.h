@@ -5,8 +5,8 @@
  *      Author: mortenjakobsen
  */
 
-#ifndef LED_H_
-#define LED_H_
+#ifndef HW_BRINGUP_SRC_LED_H_
+#define HW_BRINGUP_SRC_LED_H_
 
 #include "defs.h"
 
@@ -50,4 +50,4 @@ void ledOff(void);
 void initLed();
 int updateLed(LED_STATUS_t status);
 
-#endif /* LED_H_ */
+#endif /* HW_BRINGUP_SRC_LED_H_ */

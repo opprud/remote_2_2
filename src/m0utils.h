@@ -5,8 +5,8 @@
  *      Author: MortenOJ
  */
 
-#ifndef M0UTILS_H_
-#define M0UTILS_H_
+#ifndef HW_BRINGUP_SRC_M0UTILS_H_
+#define HW_BRINGUP_SRC_M0UTILS_H_
 
 
 #include <math.h>
@@ -21,4 +21,4 @@ long random(long from, long to);
 void delay(int ms);
 
 
-#endif /* M0UTILS_H_ */
+#endif /* HW_BRINGUP_SRC_M0UTILS_H_ */

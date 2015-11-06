@@ -5,8 +5,8 @@
  *      Author: MortenOJ
  */
 
-#ifndef DEFS_H_
-#define DEFS_H_
+#ifndef HW_BRINGUP_SRC_DEFS_H_
+#define HW_BRINGUP_SRC_DEFS_H_
 
 #define TRUE	1
 #define true	1
@@ -29,4 +29,4 @@
 #define ID_PORT3	3
 #define ID_BIT3		1
 
-#endif /* DEFS_H_ */
+#endif /* HW_BRINGUP_SRC_DEFS_H_ */

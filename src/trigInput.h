@@ -5,8 +5,8 @@
  *      Author: mortenjakobsen
  */
 
-#ifndef TRIGINPUT_H_
-#define TRIGINPUT_H_
+#ifndef HW_BRINGUP_SRC_TRIGINPUT_H_
+#define HW_BRINGUP_SRC_TRIGINPUT_H_
 
 
 #define NO_TRIGGER		0
@@ -16,4 +16,4 @@
 void trigInputInit(void);
 int trigInputRead(void);
 
-#endif /* TRIGINPUT_H_ */
+#endif /* HW_BRINGUP_SRC_TRIGINPUT_H_ */

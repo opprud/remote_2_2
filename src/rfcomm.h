@@ -5,8 +5,8 @@
  *      Author: mortenjakobsen
  */
 
-#ifndef RFCOMM_H_
-#define RFCOMM_H_
+#ifndef HW_BRINGUP_SRC_RFCOMM_H_
+#define HW_BRINGUP_SRC_RFCOMM_H_
 #include "keys.h"
 // function return values
 #define BEEN_HERE_BEFORE 	-1
@@ -46,4 +46,4 @@ typedef struct
 	tlg_type_t type;
 } payload_t;
 
-#endif /* RFCOMM_H_ */
+#endif /* HW_BRINGUP_SRC_RFCOMM_H_ */

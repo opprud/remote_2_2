@@ -17,8 +17,8 @@
  * warranty that such application will be suitable for the specified
  * use without further testing or modification.
 ****************************************************************************/
-#ifndef ROM_DRIVERS_H_
-#define ROM_DRIVERS_H_
+#ifndef HW_BRINGUP_DRIVER_ROM_DRIVERS_H_
+#define HW_BRINGUP_DRIVER_ROM_DRIVERS_H_
 
 #if CONFIG_ENABLE_DRIVER_ROMCAN==1
 	#include "rom_driver_CAN.h"
@@ -89,4 +89,4 @@ typedef	struct _ROM {
 }  ROM;
 #endif
 
-#endif /* ROM_DRIVERS_H_ */
+#endif /* HW_BRINGUP_DRIVER_ROM_DRIVERS_H_ */

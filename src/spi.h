@@ -5,8 +5,8 @@
  *      Author: mortenopprudjakobsen
  */
 
-#ifndef SPI_H_
-#define SPI_H_
+#ifndef HW_BRINGUP_SRC_SPI_H_
+#define HW_BRINGUP_SRC_SPI_H_
 
 /* Port0.2 is the SSP select pin */
 #define SSP0_SEL        (0x1<<2)
@@ -75,4 +75,4 @@ void SPI_Receive( uint8_t *buf, uint32_t Length);
 
 
 
-#endif /* SPI_H_ */
+#endif /* HW_BRINGUP_SRC_SPI_H_ */
