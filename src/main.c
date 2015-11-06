@@ -27,7 +27,7 @@ void SysTick_Handler(void)
 {
 	//GPIOSetValue( LED_PORT, LED_BIT, LED_OFF);
 
-	MsCount += 10;
+	MsCount += 1;
 	//GPIOSetValue( LED_PORT, LED_BIT, LED_ON);
 }
 
@@ -132,7 +132,7 @@ void sysInit(void)
 	/* enale brown out reset when VCC < 2,4V*/
 	//BOD_Init();
 	/* Called for system library in core_cmx.h(x=0 or 3). */
-	SysTick_Config( SysTick->CALIB + 1);
+	SysTick_Config( (SysTick->CALIB/10) + 1);
 
 	/* Enable clock to MRT and reset the MRT peripheral */
 	//LPC_SYSCON->SYSAHBCLKCTRL |= (0x1 << 10);
@@ -163,7 +163,7 @@ void sysInit(void)
 //	RF22init(6, 56, 1);
 	if (RF22init(6, 56, 1) == 0)
 		initError();
-#if 0
+#if 1
 
 	/* 17dBm TX power - max is 20dBm */
 	setTxPower(RF22_TXPOW_17DBM);
@@ -232,6 +232,7 @@ int main(void)
 	{
 		WDTFeed();
 		/* and AC trigger input */
+		while(1)
 		triggerAction = trigInputRead();
 		//if ( triggerAction != NO_TRIGGER)
 		/* any change since last...?*/
