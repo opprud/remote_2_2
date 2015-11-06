@@ -29,13 +29,6 @@
 
 #define SPI_SSEL_PIN	9
 
-//#include <SPI.h>
-
-// Interrupt vectors for the 2 Arduino interrupt pins
-// Each interrupt can be handled by a different instance of RF22, allowing you to have
-// 2 RF22s per Arduino
-//RF22* _RF22ForInterrupt[2] = {0, 0};
-
 // These are indexed by the values of ModemConfigChoice
 // Canned modem configurations generated with 
 // 'http://www.hoperf.com/upfile/RF22B 23B 31B 42B 43B Register Settings_RevB1-v5.xls'

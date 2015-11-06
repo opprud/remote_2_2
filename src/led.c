@@ -80,16 +80,16 @@ static led_status_table_t ledStatus[5] =
 { OFF, 400 },
 { OFF, 400 },
 { OFF, 400 },
-{ OFF, 400 }, }, 0, TRUE }};
+{ OFF, 400 }, }, 0, TRUE } };
 
 void ledOn(void)
 {
-	GPIOSetValue(LED_PORT, LED_PIN,1);
+	GPIOSetValue(LED_PORT, LED_PIN, 1);
 }
 
 void ledOff(void)
 {
-	GPIOSetValue(LED_PORT, LED_PIN,0);
+	GPIOSetValue(LED_PORT, LED_PIN, 0);
 }
 
 void initLed()
@@ -100,9 +100,9 @@ void initLed()
 	timeNow = millis();
 
 	/* Set LED port p1.11 to output */
-	GPIOSetDir(LED_PORT, LED_PIN,1);
+	GPIOSetDir(LED_PORT, LED_PIN, 1);
 	/* LED off */
-	GPIOSetValue(LED_PORT, LED_PIN,0);
+	GPIOSetValue(LED_PORT, LED_PIN, 0);
 
 	/* set update times accordingly */
 	ledStatus[0].index = 0;
@@ -116,7 +116,6 @@ void initLed()
 	ledStatus[2].repeatPattern = 0;
 	ledStatus[3].repeatPattern = 1;
 	ledStatus[4].repeatPattern = 1;
-
 
 	ledStatus[0].nextLedUpdateTime = timeNow + ledStatus[0].timing[ledStatus[0].index].nextLedUpdateTime;
 	ledStatus[1].nextLedUpdateTime = timeNow + ledStatus[1].timing[ledStatus[1].index].nextLedUpdateTime;
@@ -171,7 +170,8 @@ int updateLed(LED_STATUS_t status)
 		GPIOSetValue(LED_PORT, LED_PIN, ledStatus[status].timing[ledStatus[status].index].isOn);
 
 		/* set next update time for the selected state, and increment index */
-		ledStatus[status].nextLedUpdateTime = timeNow + ledStatus[status].timing[ledStatus[status].index++].nextLedUpdateTime;
+		ledStatus[status].nextLedUpdateTime = timeNow
+				+ ledStatus[status].timing[ledStatus[status].index++].nextLedUpdateTime;
 
 	}
 	return SEQUENCE_LOOPS;

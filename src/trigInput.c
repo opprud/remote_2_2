@@ -34,14 +34,10 @@ volatile unsigned long timeEdge2, timeLast2;
  * */
 void PIOINT1_IRQHandler(void)
 {
-	GPIOSetValue( 1, 11, 0);
-
 	GPIOIntClear( TRIG_IN_PORT_1, TRIG_IN_PIN_1);
 	/* detect change time */
 	timeLast1 = timeEdge1;
 	timeEdge1 = millis();
-
-	GPIOSetValue( 1, 11, 1);
 }
 
 /**
@@ -108,12 +104,23 @@ int trigInputRead(void)
 
 	/* any changes  wich is not noise ?*/
 	if ((timeEdge1 - timeLast1) > TRIG_TIME_MS_MIN)
-		ret =  TRIGGER1_ACTIVE;
+	{
+		//GPIOSetValue( 1, 11, 1);
 
+		ret |=  TRIGGER1_ACTIVE;
+		/* allign timers */
+		timeEdge1 = millis();
+		timeLast1 =timeEdge1;
+
+		//GPIOSetValue( 1, 11, 0);
+	}
 	/* any changes  wich is not noise ?*/
 	if ((timeEdge2 - timeLast2) > TRIG_TIME_MS_MAX)
+	{
 		ret |=  TRIGGER2_ACTIVE;
-
+		timeEdge2 = millis();
+		timeLast2 =timeEdge2;
+	}
 	GPIOIntEnable( TRIG_IN_PORT_1, TRIG_IN_PIN_1);
 	GPIOIntEnable( TRIG_IN_PORT_2, TRIG_IN_PIN_2);
 	/* atomic section ends here */
