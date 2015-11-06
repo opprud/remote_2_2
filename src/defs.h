@@ -13,6 +13,17 @@
 #define FALSE	0
 #define false	0
 
+
+/** Misc defines */
+#define GOT_BROACAST	1
+#define ACK_OK			2
+#define OTHER_DATA		3
+#define ACK_TIMEOUT		-1
+
+#define ACK_TIMEOUT_MS		1000
+#define NO_OF_RETRIIES		3//5
+
+/** Hardware / board defines */
 #define RFMIRQ_PORT	0
 #define RFMIRQ_PIN	11
 #define SDN_PORT	0

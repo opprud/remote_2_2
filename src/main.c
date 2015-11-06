@@ -1,24 +1,119 @@
 #include "driver_config.h"
 #include "target_config.h"
+#include "m0utils.h"
 #include "timer32.h"
 #include "gpio.h"
 #include "rf22.h"
+#include "rfcomm.h"
+#include "trigInput.h"
 #include "spi.h"
 #include "defs.h"
+#include "led.h"
 
 //TEMP
+#define DEBUG
+
+/* timer thing */
 unsigned int MsCount;
+/*read MY_ID from HW jumpers*/
+unsigned char MY_ID = 0;
+
+/* tx & rx data package*/
+payload_t txData;
+payload_t rxData;
 
 /* SysTick interrupt happens every 10 ms */
 void SysTick_Handler(void)
 {
 	//GPIOSetValue( LED_PORT, LED_BIT, LED_OFF);
 
-	MsCount +=10;
+	MsCount += 10;
 	//GPIOSetValue( LED_PORT, LED_BIT, LED_ON);
-
-	//added a commetn
 }
+
+/**
+ * @brief	read HW adress from 4 input jumpers
+ *
+ * @return	HW_ID 4 bits
+ * */
+void readHwId(void)
+{
+	unsigned int val;
+#if 0
+	val = LPC_GPIO_PORT->PIN0;
+
+	MY_ID =1;	//ID1 is the lowest possible
+	if(val & (1 << ID_BIT0))
+		MY_ID += 1;
+	if(val & (1 << ID_BIT1))
+		MY_ID += 2;
+	if(val & (1 << ID_BIT2))
+		MY_ID += 4;
+	if(!(val & (1 << ID_BIT3)))
+		MY_ID += 8;
+#endif
+}
+
+/**
+ * @brief	initialization error, when communicating with RFM22
+ * 			signal to the world using the LED
+ * */
+void initError(void)
+{
+	/* display SOS -*- on the LED */
+	while (1)
+	{
+		updateLed(LED_ERROR);
+	}
+}
+
+/*
+ * @brief 	Wait for ACK after transmitting, returns status code accordingly
+ *
+ * @return	ACK_OK 	GOT_BROADCAST	ACK_TIMEOUT
+ * */
+signed int waitForAck(void)
+{
+	unsigned char len;
+	if (waitAvailableTimeout(ACK_TIMEOUT_MS))
+	{
+		len = sizeof(rxData);
+		if (recv((unsigned char *) &rxData, &len))
+		{
+			if (rxData.type == ACK_REMOTE)
+			{
+				if (rxData.dest == MY_ID)
+				{
+					return ACK_OK;
+				}
+                else
+                {
+                    return OTHER_DATA;
+                }
+			}
+			else if ((rxData.type == DATA_REMOTE) || (rxData.type == DATA_ROUTER))
+			{
+				return OTHER_DATA;
+			}
+			else if (rxData.type == BROADCAST)
+			{
+				return GOT_BROACAST;
+			}
+		}
+	}
+	return ACK_TIMEOUT;
+}
+
+/*
+ * @brief 	Feed the watchdog
+ *
+ * @return	none
+ * */
+void WDTFeed(void)
+{
+
+}
+
 /**
  * @brief 	setup systems & platform
  *
@@ -65,10 +160,10 @@ void sysInit(void)
 	SPI_Init();
 
 	/* init radio ( chip select - D6/p0.6 ; nIRQ - D56/p2.4 ; 1 == SSP1 */
+//	RF22init(6, 56, 1);
+	if (RF22init(6, 56, 1) == 0)
+		initError();
 #if 0
-	RF22init(6, 56, 1);
-//	if (RF22init(6, 56, 1) == 0)
-//		initError();
 
 	/* 17dBm TX power - max is 20dBm */
 	setTxPower(RF22_TXPOW_17DBM);
@@ -97,6 +192,114 @@ void sysInit(void)
 
 int main(void)
 {
+	volatile int timeouts, triggerAction, lastTrigger; //todo remove volatile
+	signed char gotAck = 0;
+	unsigned char txRetries = 0;
+	volatile unsigned char len = 0;
+
+	LED_STATUS_t state = LED_IDLE;
+
+	/* setup GPIO and RFM22 */
+	sysInit();
+
+	/* allow system to settle ?WTF? before reading HW ID*/
+	delay(300);
+
+#if 0
+	/* blink led to signal HW adress*/
+	readHwId();
+	if (MY_ID < 16)
+	{
+		len = MY_ID;
+		while (len--)
+		{
+			ledOn();
+			delay(150);
+			ledOff();
+			delay(300);
+			WDTFeed();
+		}
+		/**additional delay, before led handler takes over
+		 * also allows sufficient time to avoid detecting a trig input
+		 */
+		delay(300);
+	}
+
+	//rx all
+	setPromiscuous(1);
+#endif
+	while (1)
+	{
+		WDTFeed();
+		/* and AC trigger input */
+		triggerAction = trigInputRead();
+		//if ( triggerAction != NO_TRIGGER)
+		/* any change since last...?*/
+		if (triggerAction != lastTrigger)
+		{
+			/* update delay line */
+			lastTrigger = triggerAction;
+			/* so if we are triggered...*/
+			if ((triggerAction == TRIGGER1_ACTIVE) || (triggerAction == TRIGGER2_ACTIVE))
+			{
+				/* compose data pkg */
+				txData.data[0] = triggerAction;
+				txData.data[1] = MY_ID;
+				txData.dest = DEST_ANY_ROUTER;
+				txData.source = MY_ID;
+				txData.type = DATA_REMOTE;
+			}
+			/* nothing usefull, then don't send*/
+			else
+			{
+				continue;
+			}
+			/* send message, if unsucessfull, retry */
+			gotAck = 0;
+			txRetries = 0;
+			do
+			{
+				WDTFeed();
+				/* if we have been here before due to non ACK_OK data*/
+				if ((gotAck == OTHER_DATA) || (gotAck == GOT_BROACAST))
+				{
+					gotAck = waitForAck();
+				}
+				/* if we are timed out...*/
+				else
+				{
+					len = sizeof(txData);
+					send(&txData.data[0], len);
+					waitPacketSent();
+					gotAck = waitForAck();
+				}
+			} while ((gotAck != ACK_OK) && (txRetries++ < NO_OF_RETRIIES));
+
+			if (gotAck == ACK_TIMEOUT)
+			{
+				timeouts++;
+				state = LED_ACK_TIMEOUT;
+				/* set IDLE to lower consumption*/
+				setModeIdle();
+			}
+			if (gotAck == ACK_OK)
+			{
+				/* set IDLE to lower consumption*/
+				state = LED_ACK_OK;
+				setModeIdle();
+			}
+
+		}
+		/* update LED's*/
+		if (updateLed(state) == SEQUENCE_END)
+			state = LED_IDLE;
+	}
+}
+
+#if 0
+
+int main(void)
+{
 	int i = 0, on = 0;
 	/* Basic chip initialization is taken care of in SystemInit() called
 	 * from the startup code. SystemInit() and chip settings are defined
@@ -111,7 +314,6 @@ int main(void)
 	 * the TimeTick global each time timer 0 matches and resets.
 	 */
 	//enable_timer32(0);
-
 	/* Initialize GPIO (sets up clock) */
 	GPIOInit();
 	/* Set LED port pin to output */
@@ -141,3 +343,4 @@ int main(void)
 		__WFI();
 	}
 }
+#endif

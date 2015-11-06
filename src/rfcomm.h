@@ -7,7 +7,7 @@
 
 #ifndef HW_BRINGUP_SRC_RFCOMM_H_
 #define HW_BRINGUP_SRC_RFCOMM_H_
-#include "keys.h"
+
 // function return values
 #define BEEN_HERE_BEFORE 	-1
 #define TOO_MANY_HOPS		-2
