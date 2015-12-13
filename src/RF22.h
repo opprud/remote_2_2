@@ -957,6 +957,10 @@ typedef unsigned char bool;
     /// Subclasses may override this function to get control when  an RF22 wakeup timer interrupt occurs. 
     void   handleWakeupTimerInterrupt();
 
+
+    void 		   setThisAddress(uint8_t thisAddress);
+
+
     /// Sets the TO header to be sent in all subsequent messages
     /// \param[in] to The new TO header value
     void           setHeaderTo(uint8_t to);

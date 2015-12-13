@@ -12,7 +12,9 @@
 #define true	1
 #define FALSE	0
 #define false	0
+#define NULL	0
 
+typedef unsigned char bool;
 
 /** Misc defines */
 #define GOT_BROACAST	1

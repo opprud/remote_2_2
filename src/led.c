@@ -16,6 +16,8 @@
 #include "gpio.h"
 #include "defs.h"
 #include "m0utils.h"
+#include "driver_config.h"
+
 
 /* array holding led status codes */
 /* --------------------------------- LED flash times---------------------------------------------- / timer/ repeat */
@@ -81,6 +83,19 @@ static led_status_table_t ledStatus[5] =
 { OFF, 400 },
 { OFF, 400 },
 { OFF, 400 }, }, 0, TRUE } };
+
+void ledToggle(void)
+{
+	unsigned int pin;
+	/* grab pin value */
+	//LPC_GPIO[]
+
+	pin = (LPC_GPIO1->DATA & (1 << LED_PIN));
+	if(pin)
+		GPIOSetValue(LED_PORT, LED_PIN, 0);
+	else
+		GPIOSetValue(LED_PORT, LED_PIN, 1);
+}
 
 void ledOn(void)
 {

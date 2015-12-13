@@ -18,6 +18,7 @@
 //
 //#include "LPC17xx.h"
 #include "driver_config.h"
+#include "RHGeneric.h"
 #include "RF22.h"
 //#include <math.h>
 //#include <string.h>
@@ -113,11 +114,10 @@ volatile bool _rxBufValid;
 volatile bool _txPacketSent;
 volatile uint8_t _txBufSentIndex;
 
-volatile uint16_t _rxBad;
-volatile uint16_t _rxGood;
-volatile uint16_t _txGood;
-
-volatile uint8_t _lastRssi;
+//volatile uint16_t _rxBad;
+//volatile uint16_t _rxGood;
+//volatile uint16_t _txGood;
+//volatile uint8_t _lastRssi;
 
 bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 {
@@ -162,8 +162,8 @@ bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 	// Most of these are the POR default
 	spiWrite(RF22_REG_7D_TX_FIFO_CONTROL2, RF22_TXFFAEM_THRESHOLD);
 	spiWrite(RF22_REG_7E_RX_FIFO_CONTROL, RF22_RXFFAFULL_THRESHOLD);
-	spiWrite(RF22_REG_30_DATA_ACCESS_CONTROL,
-			RF22_ENPACRX | RF22_ENPACTX | RF22_ENCRC | RF22_CRC_CRC_16_IBM);
+	spiWrite(RF22_REG_30_DATA_ACCESS_CONTROL, RF22_ENPACRX | RF22_ENPACTX | RF22_ENCRC | RF22_CRC_CRC_16_IBM);
+
 	// Configure the message headers
 	// Here we set up the standard packet format for use by the RF22 library
 	// 8 nibbles preamble
@@ -178,21 +178,19 @@ bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 	// to address will be 0xff, the from address will be 0xff
 	// and all such messages will be accepted. This permits the out-of the box
 	// RF22 config to act as an unaddresed, unreliable datagram service
-	spiWrite(RF22_REG_32_HEADER_CONTROL1,
-			RF22_BCEN_HEADER3 | RF22_HDCH_HEADER3);
+	spiWrite(RF22_REG_32_HEADER_CONTROL1,RF22_BCEN_HEADER3 | RF22_HDCH_HEADER3);
 	spiWrite(RF22_REG_33_HEADER_CONTROL2, RF22_HDLEN_4 | RF22_SYNCLEN_2);
 	setPreambleLength(8);
-	uint8_t syncwords[] =
-	{ 0x2d, 0xd4 };
+	uint8_t syncwords[] ={ 0x2d, 0xd4 };
 	setSyncWords(syncwords, sizeof(syncwords));
 	setPromiscuous(false);
 	// Check the TO header against RF22_DEFAULT_NODE_ADDRESS
-	spiWrite(RF22_REG_3F_CHECK_HEADER3, RF22_DEFAULT_NODE_ADDRESS);
+	//spiWrite(RF22_REG_3F_CHECK_HEADER3, RF22_DEFAULT_NODE_ADDRESS);
 	// Set the default transmit header values
-	setHeaderTo(RF22_DEFAULT_NODE_ADDRESS);
-	setHeaderFrom(RF22_DEFAULT_NODE_ADDRESS);
-	setHeaderId(0);
-	setHeaderFlags(0);
+	//setHeaderTo(RF22_DEFAULT_NODE_ADDRESS);
+	//setHeaderFrom(RF22_DEFAULT_NODE_ADDRESS);
+	//setHeaderId(0);
+	//setHeaderFlags(0);
 
 	// Ensure the antenna can be switched automatically according to transmit and receive
 	// This assumes GPIO0(out) is connected to TX_ANT(in) to enable tx antenna during transmit
@@ -201,9 +199,7 @@ bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 	spiWrite(RF22_REG_0C_GPIO_CONFIGURATION1, 0x15); // RX state
 
 	// Enable interrupts
-	spiWrite(RF22_REG_05_INTERRUPT_ENABLE1,
-			RF22_ENTXFFAEM | RF22_ENRXFFAFULL | RF22_ENPKSENT | RF22_ENPKVALID
-					| RF22_ENCRCERROR | RF22_ENFFERR);
+	spiWrite(RF22_REG_05_INTERRUPT_ENABLE1, RF22_ENTXFFAEM | RF22_ENRXFFAFULL | RF22_ENPKSENT | RF22_ENPKVALID | RF22_ENCRCERROR | RF22_ENFFERR);
 	spiWrite(RF22_REG_06_INTERRUPT_ENABLE2, RF22_ENPREAVAL);
 
 	// Set some defaults. An innocuous ISM frequency
@@ -215,18 +211,11 @@ bool RF22init(uint8_t slaveSelectPin, uint8_t interruptPin, uint8_t spiPortNum)
 	setTxPower(RF22_TXPOW_8DBM);
 //    setTxPower(RF22_TXPOW_17DBM);
 
-	/* ack anything pending */
-//	GPIOIntClear(RFMIRQ_PORT, RFMIRQ_PIN);
-	/* enable IRQ*/
-//	NVIC_EnableIRQ(EINT0_IRQn);
 
 	return true;
 }
 
-// C++ level interrupt handler for this instance
-//void handleInterrupt()
-//{
-//void PININT0_IRQHandler(void)
+
 void PIOINT0_IRQHandler(void)
 {
 	/* ACK INT */
@@ -334,19 +323,7 @@ void PIOINT0_IRQHandler(void)
 	GPIOIntClear(RFMIRQ_PORT, RFMIRQ_PIN);
 }
 
-// These are low level functions that call the interrupt handler for the correct
-// instance of RF22.
-// 2 interrupts allows us to have 2 different devices
-//void isr0()
-//{
-//    if (_RF22ForInterrupt[0])
-//	_RF22ForInterrupt[0]->handleInterrupt();
-//}
-//void isr1()
-//{
-//    if (_RF22ForInterrupt[1])
-//	_RF22ForInterrupt[1]->handleInterrupt();
-//}
+
 
 void reset()
 {
@@ -620,13 +597,16 @@ void setSyncWords(uint8_t* syncWords, uint8_t len)
 
 void clearRxBuf()
 {
+	__disable_irq();
 	_bufLen = 0;
 	_rxBufValid = false;
+	__enable_irq();
 }
 
 bool available()
 {
-	setModeRx();
+	if(!_rxBufValid)
+		setModeRx();
 	return _rxBufValid;
 }
 
@@ -658,18 +638,26 @@ bool recv(uint8_t* buf, uint8_t* len)
 {
 	if (!available())
 		return false;
-	if (*len > _bufLen)
-		*len = _bufLen;
-	memcpy(buf, _buf, *len);
+
+	if(buf && len)
+	{
+		__disable_irq();
+		if (*len > _bufLen)
+			*len = _bufLen;
+		memcpy(buf, _buf, *len);
+		__enable_irq();
+	}
 	clearRxBuf();
 	return true;
 }
 
 void clearTxBuf()
 {
+	__disable_irq();
 	_bufLen = 0;
 	_txBufSentIndex = 0;
 	_txPacketSent = false;
+	__enable_irq();
 }
 
 void startTransmit()
@@ -691,15 +679,34 @@ void restartTransmit()
 
 bool send(uint8_t* data, uint8_t len)
 {
+    bool ret = true;
+    //waitPacketSent();
+    __disable_irq();
+    spiWrite(RF22_REG_3A_TRANSMIT_HEADER3, _txHeaderTo);
+    spiWrite(RF22_REG_3B_TRANSMIT_HEADER2, _txHeaderFrom);
+    spiWrite(RF22_REG_3C_TRANSMIT_HEADER1, _txHeaderId);
+    spiWrite(RF22_REG_3D_TRANSMIT_HEADER0, _txHeaderFlags);
+    if (!fillTxBuf(data, len))
+    	ret = false;
+    else
+    	startTransmit();
+    __enable_irq();
+//    printBuffer("send:", data, len);
+    return ret;
+
+	/*
 	setModeIdle();
 	fillTxBuf(data, len);
 	startTransmit();
 	return true;
+	 */
 }
 
 bool fillTxBuf(uint8_t* data, uint8_t len)
 {
 	clearTxBuf();
+	if(!len)
+		return false;
 	return appendTxBuf(data, len);
 }
 
@@ -707,8 +714,11 @@ bool appendTxBuf(uint8_t* data, uint8_t len)
 {
 	if (((uint16_t) _bufLen + len) > RF22_MAX_MESSAGE_LEN)
 		return false;
+
+	__disable_irq();
 	memcpy(_buf + _bufLen, data, len);
 	_bufLen += len;
+	__enable_irq();
 	return true;
 }
 
@@ -773,24 +783,35 @@ void handleWakeupTimerInterrupt()
 {
 }
 
+void setThisAddress(uint8_t thisAddress)
+{
+	_thisAddress = thisAddress;
+    //RHSPIDriver::setThisAddress(thisAddress);
+    spiWrite(RF22_REG_3F_CHECK_HEADER3, thisAddress);
+}
+
 void setHeaderTo(uint8_t to)
 {
-	spiWrite(RF22_REG_3A_TRANSMIT_HEADER3, to);
+	_txHeaderTo =  to;
+	//spiWrite(RF22_REG_3A_TRANSMIT_HEADER3, to);
 }
 
 void setHeaderFrom(uint8_t from)
 {
-	spiWrite(RF22_REG_3B_TRANSMIT_HEADER2, from);
+	_txHeaderFrom = from;
+	//spiWrite(RF22_REG_3B_TRANSMIT_HEADER2, from);
 }
 
 void setHeaderId(uint8_t id)
 {
-	spiWrite(RF22_REG_3C_TRANSMIT_HEADER1, id);
+	_txHeaderId = id;
+	//spiWrite(RF22_REG_3C_TRANSMIT_HEADER1, id);
 }
 
 void setHeaderFlags(uint8_t flags)
 {
-	spiWrite(RF22_REG_3D_TRANSMIT_HEADER0, flags);
+	_txHeaderFlags = flags;
+	//spiWrite(RF22_REG_3D_TRANSMIT_HEADER0, flags);
 }
 
 uint8_t headerTo()

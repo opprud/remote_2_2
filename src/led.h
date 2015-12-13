@@ -45,6 +45,7 @@ typedef enum
 	LED_ERROR = 4
 }LED_STATUS_t;
 
+void ledToggle(void);
 void ledOn(void);
 void ledOff(void);
 void initLed();

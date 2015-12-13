@@ -18,4 +18,5 @@ startup \
 src \
 driver \
 cmsis \
+.metadata/.plugins/org.eclipse.cdt.make.core \
 

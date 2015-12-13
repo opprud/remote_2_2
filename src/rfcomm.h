@@ -25,11 +25,17 @@
 /*telegram type*/
 typedef enum
 {
-	TLG_NONE=0 ,BROADCAST, KEYDATA_ROUTER, ACK_REMOTE, DATA_REMOTE, DATA_ROUTER, DATA_ROUTER_FOR_ME
+	//TLG_NONE=0 ,BROADCAST, KEYDATA_ROUTER, ACK_REMOTE, DATA_REMOTE, DATA_ROUTER, DATA_ROUTER_FOR_ME
+	TLG_NONE=0 ,
+	BROADCAST,
+	REMOTE_KEY_PRESSED,
+	REMOTE_KEY_RELEASED,
+	REMOTE_ACK,
+	TOWER_KEY_PRESSED,
+	TOWER_KEY_RELEASED,
+	TOWER_ACK,
 } tlg_type_t;
 
-/*telegram destination*/
-#define DEST_ANY_ROUTER	0x80
 
 
 /* data payload
@@ -38,8 +44,8 @@ typedef enum
 typedef struct
 {
 	unsigned char data[4];
-	unsigned char breadcrumbs[6];
-	unsigned char dest;
+	unsigned char isForward;
+	unsigned char destination;
 	unsigned char source;
 	unsigned char retries;
 	unsigned char hops;	//used to limit unlimited forwards
