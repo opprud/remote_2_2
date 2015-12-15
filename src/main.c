@@ -11,7 +11,7 @@
 #include "led.h"
 #include "RHReliableDatagram.h"
 
-unsigned int MsCount;
+volatile unsigned int MsCount;
 
 #define CLIENT_ADDRESS 1
 #define SERVER_ADDRESS 2
@@ -26,10 +26,7 @@ unsigned char MY_ID = 0;
 /* SysTick interrupt happens every 10 ms */
 void SysTick_Handler(void)
 {
-	//GPIOSetValue( LED_PORT, LED_BIT, LED_OFF);
-
 	MsCount += 1;
-	//GPIOSetValue( LED_PORT, LED_BIT, LED_ON);
 }
 
 /**
@@ -48,7 +45,7 @@ void readHwId(void)
 		MY_ID += 1;
 	if ((LPC_GPIO2->DATA) & (1 << ID_BIT1))
 		MY_ID += 2;
-	if ((LPC_GPIO2->DATA) & (1 << ID_BIT2))
+	if ((LPC_GPIO3->DATA) & (1 << ID_BIT2))
 		MY_ID += 4;
 	if ((LPC_GPIO3->DATA) & (1 << ID_BIT3))
 		MY_ID += 8;
@@ -82,6 +79,7 @@ void sysInit(void)
 	//BOD_Init();
 	/* Called for system library in core_cmx.h(x=0 or 3). */
 	SysTick_Config((SysTick->CALIB / 10) + 1);
+	__enable_irq();
 
 	/* init periphereals*/
 	GPIOInit();
@@ -129,7 +127,7 @@ void sysInit(void)
 	LPC_IOCON->PIO3_1 |= 0x8;
 #endif
 
-	__enable_irq();
+	//__enable_irq();
 }
 
 /* Main Program */
@@ -147,7 +145,6 @@ int main(void)
 	/* 0 = ignore */
 	from = to = id = flags = 0;
 
-
 	LED_STATUS_t state = LED_IDLE;
 
 	/* setup GPIO and RFM22 */
@@ -156,8 +153,11 @@ int main(void)
 	/* allow system to settle ?WTF? before reading HW ID*/
 	delay(300);
 
-	setThisAddress(CLIENT_ADDRESS);
-	initRHReliableDatagram(CLIENT_ADDRESS);
+	/*read HW ID fro solder jumpers */
+	readHwId();
+
+	setThisAddress(MY_ID);
+	initRHReliableDatagram(MY_ID);
 
 	//setPromiscuous(1);//catch all
 
@@ -175,35 +175,46 @@ int main(void)
 			/* so if we are triggered...*/
 			if ((triggerAction == TRIGGER1_ACTIVE) || (triggerAction == TRIGGER2_ACTIVE))
 			{
+				/* we have a keypress */
+				txData.type = REMOTE_KEY_PRESSED;
+				/* send key1 or key2 */
+				txData.data[0] = triggerAction;
 
-				// Send a message to manager_server
-//				if (sendtoWait(data, sizeof(data), SERVER_ADDRESS))
-				if (sendtoWait((uint8_t*)&txData, sizeof(txData), SERVER_ADDRESS))
+				/* Send a message to manager_server */
+				if (sendtoWait((uint8_t*) &txData, sizeof(txData), SERVER_ADDRESS))
 				{
 					// Now wait for a reply from the server
-					//uint8_t len = sizeof(buf);
 					uint8_t len = sizeof(rxData);
-					//if (recvfromAckTimeout(buf, &len, 2000, &from, &to, &id, &flags))
-					if (recvfromAckTimeout((uint8_t*)&rxData, &len, 2000, &from, &to, &id, &flags))
+					if (recvfromAckTimeout((uint8_t*) &rxData, &len, 2000, &from, &to, &id, &flags))
 					{
-						printf("got reply from : %x :", from);
-						//printf((char*) buf);
-						ledToggle();
-					}
-					else
-					{
-						printf("No reply, is rf22_reliable_datagram_server running?");
+						if ((rxData.type == REMOTE_ACK) && (from))
+						{
+							/* signal ack on led */
+							state = LED_ACK_OK;
+							/* set IDLE to lower consumption*/
+							setModeIdle();
+						}
 					}
 				}
+				/* ack failed */
 				else
-					printf("sendtoWait failed");
+				{
+					/* NO-ONE is ACK'ing, shout out as broadcast, and expect no ack'ed telegram..*/
+					sendtoWait((uint8_t*) &txData, sizeof(txData), RH_BROADCAST_ADDRESS);
+
+					/* timeout set IDLE to lower consumption */
+					setModeIdle();
+
+					/* signal timeout */
+					state = LED_ACK_TIMEOUT;
+					//printf("No reply, is rf22_reliable_datagram_server running?");
+				}
 			}
 		}
-		//delay(100);
-		/* update LED's
-		 if (updateLed(state) == SEQUENCE_END)
-		 state = LED_IDLE;
-		 */
+		/* update LED's */
+		if (updateLed(state) == SEQUENCE_END)
+			state = LED_IDLE;
+
 	}
 }
 
